@@ -601,19 +601,19 @@ void calcCubicPG (const real t, real ** buoy)
             
             // Calculate the horizontal buoyancy gradient
             if (k == Nz-1){
-                db_dx_wrk[j][k] = - 0.5*( ( FX[j-1][k] - FX[j][k] - FC[j-1][k] )/grd_area[j][k] );
+                db_dx[j][k] = - ( FX[j-1][k] - FX[j][k] - FC[j-1][k] )/grd_area[j][k];
             }
             else
             {
-                db_dx_wrk[j][k] = - ( FX[j-1][k] + FC[j-1][k+1] - FX[j][k] - FC[j-1][k] ) / grd_area[j-1][k];
+                db_dx[j][k] = - ( FX[j-1][k] + FC[j-1][k+1] - FX[j][k] - FC[j-1][k] ) / grd_area[j-1][k];
             }
             
             // interpolate values on the western boundary after calculating them.
             if (j == 1)
             {
-                db_dx_wrk[0][k] = db_dx_wrk[1][k];
+                db_dx[0][k] = db_dx[1][k];
             }
-            
+//            fprintf(stderr,"db_dx = %f \n",db_dx[j][k]);
         }
     }
     
@@ -632,22 +632,13 @@ void calcCubicPG (const real t, real ** buoy)
             db_dz[Nz][k] = 0;
             
             // Calculate the vertical density gradient at psi grid points
-            dzk = ZZ_psi[j][k] - ZZ_psi[j][k-1];
-            dzp = ZZ_psi[j][k+1] - ZZ_psi[j][k];
-            db_dz[j][k] = 0.5*( dzk*( rhowrk[j][k+2] - rhowrk[j][k] )/dzp
-                               + dzp*( rhowrk[j][k+1] - rhowrk[j][k-1] )/dzk )/( dzp + dzk );
+//            dzk = ZZ_psi[j][k] - ZZ_psi[j][k-1];
+//            dzp = ZZ_psi[j][k+1] - ZZ_psi[j][k];
+//            db_dz[j][k] = 0.5*( dzk*( rhowrk[j][k+2] - rhowrk[j][k] )/dzp
+//                               + dzp*( rhowrk[j][k+1] - rhowrk[j][k-1] )/dzk )/( dzp + dzk );
+            db_dz[j][k] = 0.5 * ( (buoy[j][k]-buoy[j][k-1])*_dz_w[j][k] + (buoy[j-1][k]-buoy[j-1][k-1])*_dz_w[j-1][k] );
         }
     }
-    
-    // Interpolate db_dx to psi gridpoints
-    for (j = 1; j < Nx; j++)
-    {
-        for (k = 1; k < Nz; k++)
-        {
-            db_dx[j][k] = 0.25*(db_dx_wrk[j-1][k-1] + db_dx_wrk[j-1][k] + db_dx_wrk[j][k-1] + db_dx_wrk[j][k]);
-        }
-    }
-    
     
 }
 
@@ -3135,7 +3126,7 @@ int main (int argc, char ** argv)
     MATALLOC(ZZ_phi,Nx,Nz);
     MATALLOC(ZZ_u,Nx+1,Nz);
     MATALLOC(ZZ_w,Nx,Nz+1);
-    MATALLOC(grd_area,Nx,Nz);
+    MATALLOC(grd_area,Nx+1,Nz+1);
     
     // Work arrays for 'tderiv' function
     VECALLOC(phi_wrk_V,Ntot);
@@ -3517,10 +3508,20 @@ int main (int argc, char ** argv)
     
     
     // Calculate area of each grid-cell using the shoelace method
-    for (j = 0; j < Nx; j++)
+    for (j = 0; j < Nx-1; j++)
     {
-        for (k = 0; k < Nx; k ++){
-            grd_area[j][k] = 0.5*dx*( ZZ_psi[j+1][k+1] + ZZ_psi[j][k+1] - ZZ_psi[j][k] - ZZ_psi[j+1][k] );
+        grd_area[j][0] = 0;
+        grd_area[j][Nz] = 0;
+        for (k = 0; k < Nz-1; k ++)
+        {
+            grd_area[j+1][k+1] = 0.5*dx*( ZZ_phi[j][k+1] + ZZ_phi[j+1][k+1] - ZZ_phi[j+1][k] - ZZ_phi[j][k] );
+            
+            if (k == 0)
+            {
+            grd_area[0][j] = 0;
+            grd_area[Nz][j] = 0;
+            }
+         fprintf(stderr,"j = %d, k = %d, area = %f \n",j,k,grd_area[j][k]);
         }
     }
     
