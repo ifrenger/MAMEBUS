@@ -570,7 +570,9 @@ void calcCubicPG (const real t, real ** buoy)
     {
         for (k = 0; k < Nz; k++)
         {
-            FC[j][k] = 0.5*(rhowrk[j+2][k+1] - rhowrk[j+1][k+1])*(ZZ_phi[j+1][k] - ZZ_phi[j][k]) - 0.1*( ( hrx[j+1][k] - hrx[j][k] )*( ZZ_phi[j+1][k] - ZZ_phi[j][k] - (hzx[j+1][k] - hzx[j][k])/12 ) - ( hzx[j+1][k] - hzx[j][k] )*( rhowrk[j+2][k+1] - rhowrk[j+1][k+1] - (hrx[j+1][k] - hrx[j][k])/12 ) );
+            FC[j][k] = 0.5*(rhowrk[j+2][k+1] - rhowrk[j+1][k+1])*(ZZ_phi[j+1][k] - ZZ_phi[j][k])
+            - 0.1*( ( hrx[j+1][k] - hrx[j][k] )*( ZZ_phi[j+1][k] - ZZ_phi[j][k] - (hzx[j+1][k] - hzx[j][k])/12 )
+                   - ( hzx[j+1][k] - hzx[j][k] )*( rhowrk[j+2][k+1] - rhowrk[j+1][k+1] - (hrx[j+1][k] - hrx[j][k])/12 ) );
         }
     }
     
@@ -591,7 +593,6 @@ void calcCubicPG (const real t, real ** buoy)
     
     // Compute the area integrated density gradient
     // and divide by the area
-    
     
     for (j = 1; j < Nx; j++)
     {
@@ -646,6 +647,8 @@ void calcCubicPG (const real t, real ** buoy)
             db_dx[j][k] = 0.25*(db_dx_wrk[j-1][k-1] + db_dx_wrk[j-1][k] + db_dx_wrk[j][k-1] + db_dx_wrk[j][k]);
         }
     }
+    
+    
 }
 
 
