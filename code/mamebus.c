@@ -2239,20 +2239,148 @@ void tderiv_mom (const real t, real *** phi, real *** dphi_dt)
         case PRESSURE_CUBIC: // Calculate the pressure gradient using the Shchepetkin & McWilliams (2003) scheme
         {
             
-            // Integrate vertically assuming that the surface pressure is zero
+            real OneFifth = 0.2;
+            real OneTwelfth = 1/12;
+            real minVal = 1e-10;
+            
+            real cff = 0;
+            real bb = 0;    // placeholder for buoyancy
+            
+            // Calculate the density field
             for (j = 0; j < Nx; j++)
             {
-                for (k = Nz-1; k >=0; k--)
+                for (k = 0; k < Nz; k++)
                 {
-                    if (k == Nz-1)
+                    rhos[j][k] = (1-alpha*(buoy[j][k] - tref));
+                }
+            }
+            
+            
+            // Vertical Calculations
+            // Elementary differences
+            for (j = 0; j < Nx; j++)
+            {
+                for (k = 0; k < Nz-1; k++)
+                {
+                    drz[j][k+1] = rhos[j][k+1] - rhos[j][k];
+                    dzz[j][k+1] = ZZ_phi[j][k+1] - ZZ_phi[j][k];
+                    
+                }
+            }
+            
+            // Extend the differences along the boundaries
+            for (j = 0; j < Nx; j ++)
+            {
+                drz[j][0] = drz[j][1];
+                dzz[j][0] = dzz[j][1];
+                
+                drz[j][Nz] = drz[j][Nz-1];
+                dzz[j][Nz] = dzz[j][Nz-1];
+            }
+            
+            
+            // Interior hyperbolic differences
+            for (j = 0; j < Nx; j++)
+            {
+                for (k = 0; k < Nz; k++)
+                {
+                    cff = 2*drz[j][k]*drz[j][k+1];
+                    if (cff > minVal)
                     {
-                        BPx[j][k] = 0;
+                        hrz[j][k] = cff/(drz[j][k] + drz[j][k+1]);
                     }
                     else
                     {
-                        BPx[j][k] += db_dx[j][k]/dx;
+                        hrz[j][k] = 0;
                     }
-//                    fprintf(stderr,"j = %d, k = %d,BPx = %f \n",j,k,BPx[j][k]);
+                    hzz[j][k] = 2*dzz[j][k]*dzz[j][k+1]/(dzz[j][k] + dzz[j][k+1]);
+                }
+            }
+            
+            real cff1 = 0;
+            real cff2 = 0;
+            // Calculate the pressure field at the surface
+            for (j = 0; j < Nx; j++)
+            {
+                zeta = 0.5*(ZZ_psi[j][Nz] + ZZ_psi[j+1][Nz]);
+                P[j][Nz-1] = grav*( rhos[j][Nz-1] + 0.5*(zeta - ZZ_phi[j][Nz-1])*(rhos[j][Nz-1] - rhos[j][Nz-2])/(ZZ_phi[j][Nz-1] - ZZ_phi[j][Nz-2]) )*(zeta - ZZ_phi[j][Nz-1]);
+            }
+            
+            
+            // Calculate the pressure field in the interior.
+            for (j = 0; j < Nx; j++)
+            {
+                for (k = Nz-2; k >= 0; k--)
+                {
+                    P[j][k] = P[j][k+1] + 0.5*grav*( ( rhos[j][k+1] + rhos[j][k] )*( ZZ_phi[j][k+1] - ZZ_phi[j][k] )
+                                                    - OneFifth*( ( hrz[j][k+1] - hrz[j][k] )*( ZZ_phi[j][k+1] - ZZ_phi[j][k] - OneTwelfth*(hzz[j][k+1] + hzz[j][k]) )
+                                                                - ( hzz[j][k+1] - hzz[j][k] )*( rhos[j][k+1] - rhos[j][k] - OneTwelfth*(hrz[j][k+1] + hrz[j][k]) ) ) );
+                }
+            }
+            
+            // Horizontal Calculations
+            // Elementary Differences
+            for (j = 0; j < Nx-1; j++)
+            {
+                for (k = 0; k < Nz; k++)
+                {
+                    drx[j+1][k] = rhos[j+1][k] - rhos[j][k];
+                    dzx[j+1][k] = ZZ_phi[j+1][k] - ZZ_phi[j][k];
+                }
+            }
+            
+            
+            // Extend differences along the bounary
+            for (k = 0; k < Nz; k++)
+            {
+                drx[0][k] = drx[1][k];
+                dzx[0][k] = dzx[1][k];
+                
+                drx[Nx][k] = drx[Nx-1][k];
+                dzx[Nx][k] = dzx[Nx-1][k];
+            }
+            
+            // Calculate the hyperbolic differences
+            for (j = 0; j < Nx; j++)
+            {
+                for (k = 0; k < Nz; k++)
+                {
+                    cff = 2*drx[j][k]*drx[j][k+1];
+                    if (cff > minVal)
+                    {
+                        hrx[j][k] = cff/(drx[j][k] + drx[j][k+1]);
+                    }
+                    else
+                    {
+                        hrx[j][k] = 0;
+                    }
+                    hzx[j][k] = 2*dzx[j][k]*dzx[j][k+1]/(dzx[j][k] + dzx[j][k+1]);
+                }
+            }
+            
+            
+            
+            // Calculate FC's
+            for (j = 0; j < Nx-1; j++)
+            {
+                for (k = 0; k < Nz; k++)
+                {
+                    FC[j][k] = 0.5*grav*( (rhos[j+1][k] + rhos[j][k])*(ZZ_phi[j+1][k] - ZZ_phi[j][k])
+                                         - OneFifth*( ( hrx[j+1][k] - hrx[j][k] )*( ZZ_phi[j+1][k] - ZZ_phi[j][k] - OneTwelfth*(hzx[j+1][k] + hzx[j][k]) )
+                                                     - ( hzx[j+1][k] - hzx[j][k] )*( rhos[j+1][k] - rhos[j][k] - OneTwelfth*(hrx[j+1][k] + hrx[j][k]) ) ) );
+                }
+            }
+            
+            
+            
+            // Calculate the pressure gradient
+            for (j = 0; j < Nx-1; j++)
+            {
+                for (k = 0; k < Nz; k++)
+                {
+                    
+                    BPx[j+1][k] =  ( P[j+1][k] - P[j][k] + FC[j][k] )*_dx*_dz_u[j][k];
+                    //                    fprintf(stderr,"j = %d, k = %d, PG = %f \n",j,k,BPx[j+1][k]);
                 }
             }
             
