@@ -184,14 +184,20 @@ real ** Nsq = NULL;
 // Pointers for pressure calculation scheme.
 real ** dbx = NULL;     // Stores elementary differences
 real ** dbz = NULL;
+real ** drx = NULL;
+real ** drz = NULL;
 real ** dzx = NULL;
 real ** dzz = NULL;
 real ** hbx = NULL;     // Stores hyperbolic differences
 real ** hbz = NULL;
+real ** hrx = NULL;
+real ** hrz = NULL;
 real ** hzx = NULL;
 real ** hzz = NULL;
 real ** FX = NULL;       // Pressure
 real ** FC = NULL;      // integrated density
+real ** P = NULL;
+real ** rhos = NULL;
 
 
 // Boundary layer work arrays
@@ -3364,14 +3370,20 @@ int main (int argc, char ** argv)
     // Pressure calculation scheme
     MATALLOC(dbz,Nx,Nz+1);
     MATALLOC(dbx,Nx+1,Nz);
+    MATALLOC(drz,Nx,Nz+1);
+    MATALLOC(drx,Nx+1,Nz);
     MATALLOC(dzz,Nx,Nz+1);
     MATALLOC(dzx,Nx+1,Nz);
     MATALLOC(hbx,Nx,Nz);
     MATALLOC(hbz,Nx,Nz);
+    MATALLOC(hrx,Nx,Nz);
+    MATALLOC(hrz,Nx,Nz);
     MATALLOC(hzx,Nx,Nz);
     MATALLOC(hzz,Nx,Nz);
     MATALLOC(FX,Nx,Nz);
     MATALLOC(FC,Nx-1,Nz);
+    MATALLOC(P,Nx,Nz);
+    MATALLOC(rhos,Nx,Nz);
     
     
     // Boundary layer work arrays
